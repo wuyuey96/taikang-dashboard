@@ -16,6 +16,10 @@
   header.top .meta{font-size:13px; opacity:.9;}
   .period-select{background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.35); color:#fff; border-radius:6px; padding:6px 10px; font-size:13px; cursor:pointer;}
   .period-select option{color:#333;}
+  .top-actions{display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+  .refresh-btn{background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.4); color:#fff; border-radius:6px; padding:6px 14px; font-size:13px; cursor:pointer; transition:background .2s;}
+  .refresh-btn:hover{background:rgba(255,255,255,.32);}
+  .refresh-btn:active{background:rgba(255,255,255,.42);}
   .tldr{background:#fff; border:1px solid var(--line); border-left:4px solid var(--accent); border-radius:10px; padding:20px 24px; margin-bottom:20px;}
   .tldr h2{font-size:16px; color:var(--accent); margin-bottom:10px;}
   .tldr ul{margin-left:20px;}
@@ -61,10 +65,11 @@
       <h1>ETF投资指南周报</h1>
       <div class="meta" id="headerMeta">加载中…</div>
     </div>
-    <div>
+    <div class="top-actions">
       <select class="period-select" id="periodSelect" title="选择数据期">
         <option value="latest">最新一期</option>
       </select>
+      <button class="refresh-btn" id="refreshBtn" title="重新拉取最新数据">刷新数据</button>
     </div>
   </header>
 
@@ -261,9 +266,10 @@
 
   function load(period){
     var url = period==='latest' ? 'data/latest.json' : ('data/history/'+period+'.json');
+    url += (url.indexOf('?')>=0 ? '&' : '?') + '_t=' + Date.now();   // 防缓存
     document.getElementById('content').className='loading';
     document.getElementById('content').innerHTML='正在加载数据…';
-    fetch(url)
+    fetch(url, {cache:'no-store'})
       .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
       .then(render)
       .then(populateSelect)
@@ -283,6 +289,11 @@
   }
 
   document.getElementById('periodSelect').onchange=function(){ load(this.value); };
+  document.getElementById('refreshBtn').onclick=function(){
+    var sel=document.getElementById('periodSelect');
+    sel.value='latest';
+    load('latest');
+  };
   load('latest');
 })();
 </script>

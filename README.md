@@ -26,17 +26,30 @@ etf-report/
 - `outlook` / `forecast` / `risk`：展望与风险提示文本
 - `products`：推荐产品 `{code, name, type, ytd, q3, size, fee, reason}`
 
-## 数据维护（手动触发）
+## 数据维护
 
-每次更新周报时：
+**自动化（推荐）**：已配置定时任务「ETF周报数据每日自动更新并推送GitHub」，每天 08:00 自动执行：Wind 取数（统计截止日 = 最新收盘日）→ 更新 `latest.json` → 归档历史 → 更新索引 → git commit → push。线上页面随之自动刷新。
+
+**手动触发**：每次更新周报时：
 1. 用 Wind 取数（统计区间 = 近5个交易日，截至最新收盘日），生成新的 `latest.json`
 2. 将上一期 `latest.json` 归档为 `data/history/<日期>.json`，并在 `index.json` 追加一条索引
-3. `git add` / `git commit` / `git push` 到 GitHub
+3. `git add` / `git commit` / `git push` 到 GitHub（推送前记得按上文清掉代理变量）
 
 ## 部署
 
-- **GitHub Pages**：仓库 Settings → Pages → 选择 main 分支根目录，访问 `https://<用户名>.github.io/<仓库名>/`
+- **线上地址**：<https://wuyuey96.github.io/taikang-dashboard/> （仓库 `wuyuey96/taikang-dashboard`，GitHub Pages，main 分支根目录，已启用）
 - **本地预览**：`python -m http.server 8000` 后访问 `http://localhost:8000`（直接用 file:// 打开会因浏览器限制无法 fetch JSON）
+
+### 推送注意：必须绕过环境代理
+
+本机环境默认设置了代理 `http_proxy/https_proxy = http://127.0.0.1:57460`，该代理会拦截 github.com，导致 `git push` 的 TLS 握手超时（表现为 `schannel: failed to receive handshake`）。**推送前必须先清掉代理变量**：
+
+```bash
+unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY
+GIT_TERMINAL_PROMPT=0 git -c http.proxy= -c https.proxy= push origin main
+```
+
+同理，用 curl 验证 GitHub 连通性时要加 `--noproxy '*'`。
 
 ## 说明
 
