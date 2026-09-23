@@ -171,7 +171,7 @@
         '<td class="'+hlight(r.ytd)+'">'+ffPct(r.ytd)+'</td></tr>';
     }
     return '<table><thead><tr><th class="l">指数</th><th>代码</th><th>近一周</th><th>近一月</th><th>今年以来</th></tr></thead><tbody>'+body+'</tbody></table>'+
-      '<div class="tbl-note">注：涨跌幅为 Wind 区间涨跌幅（近一周=前5交易日、近一月=前20交易日、今年以来=年初至今），数据截至最新收盘日。数据来源：Wind。</div>';
+      '<div class="tbl-note">注：涨跌幅为 Wind 区间涨跌幅（近一周 / 近一月 / 今年以来），数据截至最新收盘日。数据来源：Wind。</div>';
   }
 
   function buildFlowTable(rows, suffix){
@@ -188,7 +188,7 @@
     var asOf=d.asOf, week=d.weekLabel;
     document.getElementById('headerMeta').textContent = '数据截至：'+asOf+' 收盘（最新收盘日）· '+week;
     document.getElementById('footNote').textContent =
-      '泰康基金 · ETF投资指南周报 ｜ '+week+' ｜ 数据来源：Wind（近一周=近5个交易日，截至 '+asOf+' 收盘）· 上海黄金交易所 · 公开资讯'+
+      '泰康基金 · ETF投资指南周报 ｜ '+week+' ｜ 数据来源：Wind（指数涨跌幅与ETF资金流均截至 '+asOf+' 收盘）· 上海黄金交易所 · 公开资讯'+
       ' ｜ 本材料仅供内部研究参考，不构成投资建议；市场有风险，投资需谨慎。';
     document.getElementById('footNote').style.display='';
 
@@ -222,7 +222,7 @@
 
       +'<section class="block"><h2 class="sec"><span class="no">01</span>海内外主要股指近期涨跌幅</h2>'
       +'<div class="secsub">覆盖 A股/港股/美股/日股核心宽基及 SGE黄金9999、中证红利、国证价值、国证成长等风格与商品指数</div>'
-      +'<p>近一周全球央行「超级周」靴子落地，A股科技成长逆势修复，中小盘成长全面回暖，价值与红利风格承压。</p>'
+      +'<p>'+escapeXml(d.section1Lead||'以下为海内外主要股指近一周、近一月与今年以来涨跌幅对比（红涨绿跌）。')+'</p>'
       +'<div class="chart-box" id="chartMatrix"></div>'
       +'<div class="cap">图1 · 海内外主要股指近一周/近一月/今年以来涨跌幅（%）：红涨绿跌（数据来源：Wind，截至 '+asOf+' 收盘）</div>'
       +'<div id="idxTable"></div></section>'
@@ -240,7 +240,7 @@
       +'<div class="tbl-note">注：以上数据均为 Wind 取数（近一周=近5个交易日申赎净流入，截至 '+asOf+' 收盘）。</div></section>'
 
       +'<section class="block"><h2 class="sec"><span class="no">03</span>行业重要新闻与投资展望 · 泰康ETF产品推荐</h2>'
-      +'<div class="secsub">「十五五」产业规划密集落地</div>'
+      +'<div class="secsub">'+escapeXml(d.newsSub||'政策动态 · 产业催化 · 投研观点')+'</div>'
       + newsHtml
       +'<h3>投资展望</h3><div class="summary"><p>'+escapeXml(d.outlook)+'</p></div>'
       +'<h3>泰康基金ETF产品推荐</h3>'
