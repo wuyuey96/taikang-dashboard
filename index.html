@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ETF投资指南周报</title>
+<style>
+  :root{ --bg:#f5f6f8; --card:#ffffff; --ink:#1a1a1a; --sub:#5a5f68; --line:#e6e8ec;
+         --red:#d93f3f; --green:#0a9a5b; --accent:#1f5fb3; --gold:#b8860b; }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--ink); font-family:"PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif; line-height:1.7; font-size:15px;}
+  .wrap{max-width:980px; margin:0 auto; padding:24px 20px 60px;}
+  header.top{background:linear-gradient(135deg,#16324f 0%,#1f5fb3 100%); color:#fff; border-radius:14px; padding:28px 30px 24px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:10px;}
+  header.top .kicker{font-size:13px; letter-spacing:2px; opacity:.85;}
+  header.top h1{font-size:26px; font-weight:700; margin:8px 0 4px;}
+  header.top .meta{font-size:13px; opacity:.9;}
+  .period-select{background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.35); color:#fff; border-radius:6px; padding:6px 10px; font-size:13px; cursor:pointer;}
+  .period-select option{color:#333;}
+  .tldr{background:#fff; border:1px solid var(--line); border-left:4px solid var(--accent); border-radius:10px; padding:20px 24px; margin-bottom:20px;}
+  .tldr h2{font-size:16px; color:var(--accent); margin-bottom:10px;}
+  .tldr ul{margin-left:20px;}
+  .tldr li{margin:5px 0; color:#333;}
+  .tldr b{color:var(--accent);}
+  section.block{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:26px 28px; margin-bottom:22px;}
+  h2.sec{font-size:20px; font-weight:700; margin-bottom:4px; color:#16324f;}
+  h2.sec .no{color:var(--accent); margin-right:6px;}
+  .secsub{font-size:13px; color:var(--sub); margin-bottom:18px;}
+  h3{font-size:16px; font-weight:700; margin:18px 0 8px; color:#1d3557;}
+  p{color:#30343a; margin:8px 0;}
+  .hl-red{color:var(--red); font-weight:700;}
+  .hl-green{color:var(--green); font-weight:700;}
+  .hl-blue{color:var(--accent); font-weight:700;}
+  .chart-box{background:#fbfcfe; border:1px solid var(--line); border-radius:8px; padding:14px 12px 8px; margin:12px 0 6px;}
+  .cap{font-size:12.5px; color:#8a8f98; text-align:center; margin:2px 0 16px;}
+  table{width:100%; border-collapse:collapse; margin:12px 0; font-size:13px;}
+  th,td{border:1px solid var(--line); padding:7px 8px; text-align:center;}
+  th{background:#f0f3f7; color:#1d3557; font-weight:600; white-space:nowrap;}
+  td.l, th.l{text-align:left;}
+  tr:nth-child(even) td{background:#fafbfc;}
+  tbody tr:hover td{background:#f2f6fb;}
+  code.cd{color:#8a8f98; font-size:12px;}
+  .tbl-note{font-size:12px; color:#8a8f98; margin-top:6px;}
+  .news-card{border:1px solid var(--line); border-radius:8px; padding:14px 16px; margin:12px 0; background:#fbfcfe;}
+  .news-card .tag{display:inline-block; font-size:12px; color:#fff; background:var(--accent); border-radius:4px; padding:1px 8px; margin-right:8px;}
+  .news-card .tag.warm{background:var(--gold);}
+  .news-card .title{font-weight:700; color:#1d3557; margin:6px 0 4px;}
+  .news-card .body{font-size:13.5px; color:#4a4f57;}
+  .summary{background:#f0f6ff; border:1px solid #d6e4f5; border-radius:8px; padding:16px 18px; margin:14px 0;}
+  .risk{background:#fff8f0; border:1px solid #f3ddc2; border-radius:8px; padding:16px 18px; margin:16px 0; font-size:13.5px; color:#7a5a24;}
+  .risk b{color:#a5661a;}
+  .foot{font-size:12px; color:#9a9fa7; text-align:center; margin-top:26px; line-height:1.8;}
+  .loading{text-align:center; padding:60px; color:#8a8f98;}
+  .err{padding:20px; background:#fff0f0; border:1px solid #f0c0c0; border-radius:8px; color:#a33; margin:20px 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="kicker">泰康基金 · 指数与量化投资</div>
+      <h1>ETF投资指南周报</h1>
+      <div class="meta" id="headerMeta">加载中…</div>
+    </div>
+    <div>
+      <select class="period-select" id="periodSelect" title="选择数据期">
+        <option value="latest">最新一期</option>
+      </select>
+    </div>
+  </header>
+
+  <div id="content" class="loading">正在加载数据…</div>
+
+  <div class="foot" id="footNote" style="display:none;"></div>
+</div>
+
+<script>
+(function(){
+  var RED='#d93f3f', GREEN='#0a9a5b', GRAY='#9a9fa7';
+  function colorOf(v){ return v>0.005?RED:(v<-0.005?GREEN:GRAY); }
+  function ffPct(v){ return Math.abs(v)<0.005?'≈ 0.00%':(v>0?'+':'')+v.toFixed(2)+'%'; }
+
+  // ===== 图表渲染：矩阵图（指数三区间） =====
+  function renderMatrix(el, rows, keepCode){
+    // rows: [{name,code,w,m,ytd}]
+    var sorted = rows.slice().sort(function(a,b){return b.ytd-a.ytd;});
+    var width=720, label_w=104, row_h=23, top=6, header_h=30, bottom=14;
+    var plot_w = width - label_w - 46;
+    var col_w = plot_w/3;
+    var rmaxes=[8.0,8.0,30.0];
+    var titles=['近一周','近一月','今年以来'];
+    var n=sorted.length;
+    var h=top+header_h+n*row_h+bottom;
+    var s='<svg viewBox="0 0 '+width+' '+h+'" style="width:100%;height:auto;font-family:\'PingFang SC\',\'Microsoft YaHei\',sans-serif" xmlns="http://www.w3.org/2000/svg">';
+    var zeroXs=[];
+    for(var k=0;k<3;k++){
+      var zx = label_w + col_w*(k+0.5);
+      zeroXs.push(zx);
+      s+='<text x="'+zx.toFixed(1)+'" y="'+(top+16)+'" text-anchor="middle" font-size="13" font-weight="700" fill="#1d3557">'+titles[k]+'</text>';
+    }
+    s+='<text x="'+(width-8)+'" y="'+(top+16)+'" text-anchor="end" font-size="11" fill="#8a8f98">单位:%</text>';
+    for(k=0;k<3;k++){
+      s+='<line x1="'+zeroXs[k].toFixed(1)+'" y1="'+(top+header_h-6)+'" x2="'+zeroXs[k].toFixed(1)+'" y2="'+(top+header_h+n*row_h-6)+'" stroke="#d8dde3" stroke-width="1"/>';
+    }
+    var half=col_w/2-5;
+    for(var i=0;i<n;i++){
+      var r=sorted[i], y=top+header_h+i*row_h+row_h/2;
+      var label = keepCode ? r.name+' '+r.code : r.name;
+      s+='<text x="'+(label_w-10)+'" y="'+(y+4)+'" text-anchor="end" font-size="12" fill="#333">'+escapeXml(label)+'</text>';
+      var vals=[r.w,r.m,r.ytd];
+      for(k=0;k<3;k++){
+        var v=vals[k], zx=zeroXs[k];
+        var xe=zx+(v/rmaxes[k])*half;
+        var x1=Math.min(zx,xe), x2=Math.max(zx,xe), ww=x2-x1;
+        var c=colorOf(v);
+        if(ww>0.5){ s+='<rect x="'+x1.toFixed(1)+'" y="'+(y-row_h/2+4).toFixed(1)+'" width="'+ww.toFixed(1)+'" height="'+(row_h-8)+'" fill="'+c+'" rx="1.5"/>'; }
+        var t=ffPct(v);
+        if(v>0.005){ s+='<text x="'+(xe+4).toFixed(1)+'" y="'+(y+3.5).toFixed(1)+'" font-size="11" fill="'+c+'">'+t+'</text>'; }
+        else if(v<-0.005){ s+='<text x="'+(xe-4).toFixed(1)+'" y="'+(y+3.5).toFixed(1)+'" text-anchor="end" font-size="11" fill="'+c+'">'+t+'</text>'; }
+        else { s+='<text x="'+(zx+4).toFixed(1)+'" y="'+(y+3.5).toFixed(1)+'" font-size="11" fill="'+GRAY+'">0.00%</text>'; }
+      }
+    }
+    s+='</svg>';
+    el.innerHTML=s;
+  }
+
+  // ===== 发散条形图 =====
+  function renderBar(el, rows, rmax, label_w){
+    var sorted=rows.slice().sort(function(a,b){return b.value-a.value;});
+    var width=680, right_margin=76, row_h=28, top_pad=12;
+    if(label_w==null) label_w=150;
+    var plot_w=width-label_w-right_margin;
+    var zeroX=label_w+plot_w/2;
+    var n=sorted.length;
+    var h=top_pad+n*row_h+18;
+    var s='<svg viewBox="0 0 '+width+' '+h+'" style="width:100%;height:auto;font-family:\'PingFang SC\',\'Microsoft YaHei\',sans-serif" xmlns="http://www.w3.org/2000/svg">';
+    s+='<line x1="'+zeroX.toFixed(1)+'" y1="'+top_pad+'" x2="'+zeroX.toFixed(1)+'" y2="'+(top_pad+n*row_h)+'" stroke="#c4c9d0" stroke-width="1.2"/>';
+    var half=plot_w/2;
+    for(var i=0;i<n;i++){
+      var r=sorted[i], y=top_pad+i*row_h+row_h/2;
+      s+='<text x="'+(label_w-10)+'" y="'+(y+4)+'" text-anchor="end" font-size="13" fill="#333">'+escapeXml(r.name)+'</text>';
+      var xe=zeroX+(r.value/rmax)*half;
+      var x1=Math.min(zeroX,xe), x2=Math.max(zeroX,xe), ww=x2-x1;
+      var c=colorOf(r.value);
+      if(ww>0.5){ s+='<rect x="'+x1.toFixed(1)+'" y="'+(y-row_h/2+4).toFixed(1)+'" width="'+ww.toFixed(1)+'" height="'+(row_h-8)+'" fill="'+c+'" rx="2"/>'; }
+      var t=(r.value>0?'+':'')+r.value.toFixed(2);
+      if(r.value>0.005){ s+='<text x="'+(xe+6).toFixed(1)+'" y="'+(y+4)+'" font-size="12" fill="'+c+'">'+t+'</text>'; }
+      else if(r.value<-0.005){ s+='<text x="'+(xe-6).toFixed(1)+'" y="'+(y+4)+'" text-anchor="end" font-size="12" fill="'+c+'">'+t+'</text>'; }
+      else { s+='<text x="'+(zeroX+6).toFixed(1)+'" y="'+(y+4)+'" font-size="12" fill="'+GRAY+'">0</text>'; }
+    }
+    s+='</svg>';
+    el.innerHTML=s;
+  }
+
+  function escapeXml(str){ return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function hlight(v){ return v>0.005?'hl-red':(v<-0.005?'hl-green':''); }
+  function tr2(td){ return '<tr>'+td.join('')+'</tr>'; }
+
+  function buildIndexTable(rows){
+    var sorted=rows.slice().sort(function(a,b){return b.ytd-a.ytd;});
+    var body='';
+    for(var i=0;i<sorted.length;i++){
+      var r=sorted[i];
+      body+='<tr><td class="l">'+escapeXml(r.name)+'</td><td><code class="cd">'+escapeXml(r.code)+'</code></td>'+
+        '<td class="'+hlight(r.w)+'">'+ffPct(r.w)+'</td>'+
+        '<td class="'+hlight(r.m)+'">'+ffPct(r.m)+'</td>'+
+        '<td class="'+hlight(r.ytd)+'">'+ffPct(r.ytd)+'</td></tr>';
+    }
+    return '<table><thead><tr><th class="l">指数</th><th>代码</th><th>近一周</th><th>近一月</th><th>今年以来</th></tr></thead><tbody>'+body+'</tbody></table>'+
+      '<div class="tbl-note">注：涨跌幅为 Wind 区间涨跌幅（近一周=前5交易日、近一月=前20交易日、今年以来=年初至今），数据截至最新收盘日。数据来源：Wind。</div>';
+  }
+
+  function buildFlowTable(rows, suffix){
+    var sorted=rows.slice().sort(function(a,b){return b.value-a.value;});
+    var body='';
+    for(var i=0;i<sorted.length;i++){
+      var r=sorted[i];
+      body+='<tr><td class="l">'+escapeXml(r.name)+'</td><td class="'+hlight(r.value)+'">'+(r.value>0?'+':'')+r.value.toFixed(2)+(suffix||'')+'</td></tr>';
+    }
+    return '<table><thead><tr><th class="l">名称</th><th>净流入(亿元)</th></tr></thead><tbody>'+body+'</tbody></table>';
+  }
+
+  function render(d){
+    var asOf=d.asOf, week=d.weekLabel;
+    document.getElementById('headerMeta').textContent = '数据截至：'+asOf+' 收盘（最新收盘日）· '+week;
+    document.getElementById('footNote').textContent =
+      '泰康基金 · ETF投资指南周报 ｜ '+week+' ｜ 数据来源：Wind（近一周=近5个交易日，截至 '+asOf+' 收盘）· 上海黄金交易所 · 公开资讯'+
+      ' ｜ 本材料仅供内部研究参考，不构成投资建议；市场有风险，投资需谨慎。';
+    document.getElementById('footNote').style.display='';
+
+    var tl='<ul>';
+    for(var i=0;i<d.tldr.length;i++){ tl+='<li>'+d.tldr[i]+'</li>'; }
+    tl+='</ul>';
+
+    var newsHtml='';
+    for(i=0;i<d.news.length;i++){
+      var n=d.news[i];
+      newsHtml+='<div class="news-card"><span class="tag">'+escapeXml(n.tag)+'</span>'+
+        (n.tag2?'<span class="tag warm">'+escapeXml(n.tag2)+'</span>':'')+
+        '<div class="title">'+escapeXml(n.title)+'</div><div class="body">'+escapeXml(n.body)+'</div></div>';
+    }
+
+    var prodBody='';
+    for(i=0;i<d.products.length;i++){
+      var p=d.products[i];
+      prodBody+='<tr><td>'+escapeXml(p.code)+'</td><td>'+escapeXml(p.name)+'</td><td>'+escapeXml(p.type)+'</td>'+
+        '<td class="'+(p.ytd.indexOf('-')===0?'hl-green':'hl-red')+'">'+p.ytd+'</td>'+
+        '<td class="'+(p.q3.indexOf('-')===0?'hl-green':'hl-red')+'">'+p.q3+'</td>'+
+        '<td>'+escapeXml(p.size)+'</td><td>'+escapeXml(p.fee)+'</td>'+
+        '<td class="l" style="text-align:left;font-size:12.5px;color:#4a4f57">'+escapeXml(p.reason)+'</td></tr>';
+    }
+
+    var forecast=d.forecast.split('\n');
+    var forecastHtml='';
+    for(i=0;i<forecast.length;i++){ forecastHtml+='<p>'+escapeXml(forecast[i])+'</p>'; }
+
+    var html='<div class="tldr"><h2>本周一句话结论</h2>'+tl+'</div>'
+
+      +'<section class="block"><h2 class="sec"><span class="no">01</span>海内外主要股指近期涨跌幅</h2>'
+      +'<div class="secsub">覆盖 A股/港股/美股/日股核心宽基及 SGE黄金9999、中证红利、国证价值、国证成长等风格与商品指数</div>'
+      +'<p>近一周全球央行「超级周」靴子落地，A股科技成长逆势修复，中小盘成长全面回暖，价值与红利风格承压。</p>'
+      +'<div class="chart-box" id="chartMatrix"></div>'
+      +'<div class="cap">图1 · 海内外主要股指近一周/近一月/今年以来涨跌幅（%）：红涨绿跌（数据来源：Wind，截至 '+asOf+' 收盘）</div>'
+      +'<div id="idxTable"></div></section>'
+
+      +'<section class="block"><h2 class="sec"><span class="no">02</span>ETF市场表现与资金流向</h2>'
+      +'<div class="secsub">数据来源：Wind · 近一周 = 近5个交易日（截至最新收盘日）· 按大类/宽基/行业主题/跨境分类</div>'
+      +'<h3>2.1 全市场大类</h3><div class="chart-box" id="chartMarket"></div>'
+      +'<div class="cap">图2 · 全市场ETF申赎净流入（亿元，Wind大类口径）：红流入·绿流出</div>'
+      +'<h3>2.2 宽基指数</h3><div class="chart-box" id="chartBroad"></div>'
+      +'<div class="cap">图3 · 重要宽基指数申赎净流入（亿元）：红流入·绿流出</div>'
+      +'<h3>2.3 行业主题指数</h3><div class="chart-box" id="chartIndustry"></div>'
+      +'<div class="cap">图4 · 行业主题指数ETF申赎净流入（亿元）：红流入·绿流出</div>'
+      +'<div id="industryTable"></div>'
+      +'<h3>2.4 跨境指数</h3><div id="crossTable"></div>'
+      +'<div class="tbl-note">注：以上数据均为 Wind 取数（近一周=近5个交易日申赎净流入，截至 '+asOf+' 收盘）。</div></section>'
+
+      +'<section class="block"><h2 class="sec"><span class="no">03</span>行业重要新闻与投资展望 · 泰康ETF产品推荐</h2>'
+      +'<div class="secsub">「十五五」产业规划密集落地</div>'
+      + newsHtml
+      +'<h3>投资展望</h3><div class="summary"><p>'+escapeXml(d.outlook)+'</p></div>'
+      +'<h3>泰康基金ETF产品推荐</h3>'
+      +'<table><thead><tr><th>产品代码</th><th>产品简称</th><th>类型</th><th>YTD</th><th>近三月</th><th>规模(亿元)</th><th>管理费</th><th class="l">推荐逻辑</th></tr></thead><tbody>'+prodBody+'</tbody></table>'
+      +'<div class="tbl-note">注：业绩与规模数据来自泰康基金指数量化产品台账。基金过往业绩不预示未来表现。</div></section>'
+
+      +'<section class="block"><h2 class="sec"><span class="no">04</span>中长期市场展望及投资建议</h2>'
+      +'<div class="secsub">总结话术 · 附风险提示</div>'+forecastHtml
+      +'<div class="risk"><b>风险提示：</b>'+escapeXml(d.risk)+'</div></section>';
+
+    document.getElementById('content').className='';
+    document.getElementById('content').innerHTML=html;
+
+    // 渲染图表
+    renderMatrix(document.getElementById('chartMatrix'), d.indices, true);
+    renderBar(document.getElementById('chartMarket'), d.etfFlow.market, 215, 110);
+    renderBar(document.getElementById('chartBroad'), d.etfFlow.broad, 55, 110);
+    renderBar(document.getElementById('chartIndustry'), d.etfFlow.industry, 20, 130);
+    document.getElementById('idxTable').innerHTML = buildIndexTable(d.indices);
+    document.getElementById('industryTable').innerHTML = buildFlowTable(d.etfFlow.industry);
+    document.getElementById('crossTable').innerHTML = buildFlowTable(d.etfFlow.crossBorder);
+  }
+
+  function load(period){
+    var url = period==='latest' ? 'data/latest.json' : ('data/history/'+period+'.json');
+    document.getElementById('content').className='loading';
+    document.getElementById('content').innerHTML='正在加载数据…';
+    fetch(url)
+      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(render)
+      .then(populateSelect)
+      .catch(function(e){
+        document.getElementById('content').innerHTML='<div class="err">数据加载失败：'+escapeXml(e.message)+'。请确认数据文件 '+url+' 已部署。</div>';
+      });
+  }
+
+  // 从 index.json 填充历史期下拉（若存在）
+  function populateSelect(){
+    fetch('data/index.json').then(function(r){ return r.json(); }).then(function(list){
+      var sel=document.getElementById('periodSelect');
+      sel.innerHTML='<option value="latest">最新一期</option>';
+      (list||[]).forEach(function(p){ sel.innerHTML+='<option value="'+p.id+'">'+p.label+'</option>'; });
+      sel.onchange=function(){ load(sel.value); };
+    }).catch(function(){ /* 无历史索引则忽略 */ });
+  }
+
+  document.getElementById('periodSelect').onchange=function(){ load(this.value); };
+  load('latest');
+})();
+</script>
+</body>
+</html>
